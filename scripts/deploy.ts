@@ -36,6 +36,14 @@ async function main() {
   const stakingPoolAddress = await stakingPool.getAddress();
   console.log("✅ StakingPool deployed to:", stakingPoolAddress);
 
+  // Deploy RewardSilo
+  console.log("\n📦 Deploying RewardSilo...");
+  const RewardSilo = await ethers.getContractFactory("RewardSilo");
+  const rewardSilo = await RewardSilo.deploy();
+  await rewardSilo.waitForDeployment();
+  const rewardSiloAddress = await rewardSilo.getAddress();
+  console.log("✅ RewardSilo deployed to:", rewardSiloAddress);
+
   // Deploy mock tokens for testing
   console.log("\n📦 Deploying mock tokens for testing...");
   const MockERC20 = await ethers.getContractFactory("MockERC20");
@@ -101,6 +109,24 @@ async function main() {
   await indexToken.transfer(stakingPoolAddress, indexBalance / 2n);
   console.log("✅ Transferred", ethers.formatEther(indexBalance / 2n), "AIMIDX to staking pool");
 
+  // Configure RewardSilo
+  console.log("\n⚙️  Configuring RewardSilo...");
+  const siloFundAmount = ethers.parseEther("500");
+  const distributionRate = ethers.parseEther("0.5"); // 0.5 tokens per second
+
+  await rewardSilo.createSilo(
+    indexTokenAddress,
+    stakingPoolAddress,
+    distributionRate,
+    "Main Reward Vault"
+  );
+  console.log("✅ Created reward silo with 0.5 tokens/sec distribution rate");
+
+  // Fund the silo
+  await indexToken.approve(rewardSiloAddress, siloFundAmount);
+  await rewardSilo.fundSilo(1, siloFundAmount);
+  console.log("✅ Funded reward silo with", ethers.formatEther(siloFundAmount), "AIMIDX tokens");
+
   // Summary
   console.log("\n" + "=".repeat(60));
   console.log("🎉 DEPLOYMENT COMPLETE!");
@@ -108,6 +134,7 @@ async function main() {
   console.log("\n📋 Contract Addresses:");
   console.log("├─ IndexToken:      ", indexTokenAddress);
   console.log("├─ StakingPool:     ", stakingPoolAddress);
+  console.log("├─ RewardSilo:      ", rewardSiloAddress);
   console.log("├─ Mock Token A:    ", tokenAAddress);
   console.log("├─ Mock Token B:    ", tokenBAddress);
   console.log("└─ Mock Token C:    ", tokenCAddress);
@@ -120,7 +147,11 @@ async function main() {
   console.log("├─ Management Fee: 2%");
   console.log("├─ Performance Fee: 20%");
   console.log("├─ Staking Reward Rate: 1 token/second");
-  console.log("└─ Staking Lock Period: 7 days");
+  console.log("├─ Staking Lock Period: 7 days");
+  console.log("└─ Reward Silo:");
+  console.log("   ├─ Distribution Rate: 0.5 tokens/second");
+  console.log("   ├─ Initial Funding: 500 AIMIDX");
+  console.log("   └─ Target Pool: StakingPool");
 
   console.log("\n💡 Next Steps:");
   console.log("1. Verify contracts on Etherscan (if on public network)");
@@ -129,14 +160,16 @@ async function main() {
   console.log("4. Start monitoring and analytics\n");
 
   // Save deployment addresses to file
+  const network = await ethers.provider.getNetwork();
   const deploymentInfo = {
-    network: (await ethers.provider.getNetwork()).name,
-    chainId: (await ethers.provider.getNetwork()).chainId,
+    network: network.name,
+    chainId: Number(network.chainId),
     deployer: deployer.address,
     timestamp: new Date().toISOString(),
     contracts: {
       indexToken: indexTokenAddress,
       stakingPool: stakingPoolAddress,
+      rewardSilo: rewardSiloAddress,
       mockTokenA: tokenAAddress,
       mockTokenB: tokenBAddress,
       mockTokenC: tokenCAddress,
@@ -163,6 +196,18 @@ async function main() {
             stakingToken: tokenAAddress,
             minStake: "10",
             lockPeriod: "7 days",
+          },
+        ],
+      },
+      rewardSilo: {
+        silos: [
+          {
+            id: 1,
+            name: "Main Reward Vault",
+            rewardToken: indexTokenAddress,
+            distributionRate: "0.5 tokens/second",
+            targetPool: stakingPoolAddress,
+            initialFunding: "500 AIMIDX",
           },
         ],
       },
