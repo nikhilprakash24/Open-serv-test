@@ -1,4 +1,5 @@
-import { Activity, Wallet } from 'lucide-react';
+import { Activity } from 'lucide-react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 export function Header() {
   return (
@@ -21,10 +22,7 @@ export function Header() {
               <span className="text-sm text-gray-300">Sepolia Testnet</span>
             </div>
 
-            <button className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl">
-              <Wallet className="h-5 w-5 text-white" />
-              <span className="text-white font-medium">Connect Wallet</span>
-            </button>
+            <ConnectButton />
           </div>
         </div>
       </div>
